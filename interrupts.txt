@@ -1,0 +1,31 @@
+Interrupts
+============
+
+ISR: interrupt service routine
+	form: void __attribute__((interrupt,auto.psv)) _T1Interrupt(void) <- stored in the .gld file
+ISR's have a priority that can be set (0 - 7) (default 4)
+IVT (interrupt vector table) - contains the priorities for the vectors
+
+disabling interrupts: 
+__builtin_disi(# of cycles) <- disables all interrupts with 1 - 6 priority, max Ox3FFF cycles (16,383)
+
+char saved_ipl;
+SET_AND_SAVE_CPU_IPL(saved_ipl, 7) (disables all interrupts through priority 7)
+
+RESTORE_CPU_IPL(saved_ipl)
+
+***ALWAYS CLEAR THE INTERRUPT FLAG***
+_T1IF = 0 (T1 interrupt flag cleared)
+
+interrupts are useful for: 
+counting encoder ticks
+measuring Vemf on the falling edge of the PWM input signal <- doable using the output compare module (maybe along with the timer module)
+measuring current when PWM is high <- doable using the output compare module (maybe along with the timer module)
+			
+Avoid doing things that take a lot of time in interrupts
+sampling is okay
+floating point math is not
+
+
+edge-aligned PWM mode
+trick: wrote oc_pwm in double compare mode, falling edge is oc flag, timer overflow is rising flag
