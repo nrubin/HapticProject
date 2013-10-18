@@ -14,7 +14,7 @@ list = Builder(action = 'xc16-objdump -S -D $SOURCE > $TARGET',
                src_suffix = 'elf')
 env.Append(BUILDERS = {'List' : list})
 
-env.Program('mapper', ['mapper.c',
+env.Program('haptic', ['haptic.c',
                          'descriptors.c', 
                          'usb.c', 
                          '../lib/pin.c', 
@@ -23,5 +23,5 @@ env.Program('mapper', ['mapper.c',
                          '../lib/timer.c',
                          '../lib/oc.c'])
 
-env.Hex('mapper')
-env.List('mapper')
+env.Hex('haptic')
+env.List('haptic')
