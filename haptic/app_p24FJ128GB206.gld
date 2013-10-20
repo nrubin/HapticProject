@@ -269,8 +269,10 @@ SECTIONS
     SHORT(DEFINED(__SPI3Interrupt) ? ABSOLUTE(__SPI3Interrupt) : ABSOLUTE(__DefaultInterrupt));  SHORT(0x04);  SHORT(DEFINED(__SPI3Interrupt) ? (ABSOLUTE(__SPI3Interrupt) >> 16) & 0x7F : (ABSOLUTE(__DefaultInterrupt) >> 16) & 0x7F);  SHORT(0);
     SHORT(DEFINED(__OC9Interrupt) ? ABSOLUTE(__OC9Interrupt) : ABSOLUTE(__DefaultInterrupt));  SHORT(0x04);  SHORT(DEFINED(__OC9Interrupt) ? (ABSOLUTE(__OC9Interrupt) >> 16) & 0x7F : (ABSOLUTE(__DefaultInterrupt) >> 16) & 0x7F);  SHORT(0);
     SHORT(DEFINED(__IC9Interrupt) ? ABSOLUTE(__IC9Interrupt) : ABSOLUTE(__DefaultInterrupt));  SHORT(0x04);  SHORT(DEFINED(__IC9Interrupt) ? (ABSOLUTE(__IC9Interrupt) >> 16) & 0x7F : (ABSOLUTE(__DefaultInterrupt) >> 16) & 0x7F);  SHORT(0);
+    SHORT(DEFINED(__TachInterrupt) ? ABSOLUTE(__TachInterrupt) : ABSOLUTE(__DefaultInterrupt));  SHORT(0x04);  SHORT(DEFINED(__TachInterrupt) ? (ABSOLUTE(__TachInterrupt) >> 16) & 0x7F : (ABSOLUTE(__DefaultInterrupt) >> 16) & 0x7F);  SHORT(0);
     __DEFAULT_VECTOR = .;
     SHORT(ABSOLUTE(__DefaultInterrupt)); SHORT(0x04); SHORT((ABSOLUTE(__DefaultInterrupt) >> 16) & 0x7F); SHORT(0);
+
   }
 
 /*
@@ -384,7 +386,7 @@ SECTIONS
     LONG(ABSOLUTE(__APP_IVT_BASE) + 0x100); /* __SPI3Interrupt */
     LONG(ABSOLUTE(__APP_IVT_BASE) + 0x104); /* __OC9Interrupt */
     LONG(ABSOLUTE(__APP_IVT_BASE) + 0x108); /* __IC9Interrupt */
-    LONG(ABSOLUTE(__DEFAULT_VECTOR)); /* __Interrupt94 */
+    LONG(ABSOLUTE(__APP_IVT_BASE) + 0x10C); /* __TachInterrupt */
     LONG(ABSOLUTE(__DEFAULT_VECTOR)); /* __Interrupt95 */
     LONG(ABSOLUTE(__DEFAULT_VECTOR)); /* __Interrupt96 */
     LONG(ABSOLUTE(__DEFAULT_VECTOR)); /* __Interrupt97 */

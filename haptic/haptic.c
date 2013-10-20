@@ -14,11 +14,12 @@
 #define GET_VALS    2   // Vendor request that returns 2 unsigned integer values
 #define PRINT_VALS  3   // Vendor request that prints 2 unsigned integer values 
 
-const float FREQ = 40e3;
+const float FREQ = 25e3;
 const uint16_t ZERO_DUTY = 0;
 const uint16_t HALF_DUTY = 32768; //6 volts
 const uint16_t QUARTER_DUTY = 16384; //6 volts
 const uint16_t THREE_QUARTER_DUTY = 49152; //6 volts
+const uint16_t FULL_DUTY = 65535; //6 volts
 
 uint16_t val1, val2;
 uint16_t slow = 0;
@@ -74,6 +75,31 @@ void VendorRequestsOut(void) {
     }
 }
 
+void init_motor(void){
+    pin_digitalIn(&D[0]); //tach input
+    pin_digitalOut(&D[2]); //D2-bar
+    pin_digitalOut(&D[3]); //D1
+    pin_digitalOut(&D[4]); //ENA
+    pin_digitalOut(&D[7]); //SLEW
+    pin_digitalOut(&D[8]); //INV
+
+    pin_write(&D[2],1); //no tri-stating!
+    pin_write(&D[3],0); //no tri-stating!
+    pin_write(&D[4],1); //Enable the system
+    pin_write(&D[7],0); //low slew rate
+    pin_write(&D[8],0); //don't invert the inputs!    
+}
+
+void __attribute__((interrupt, auto_psv)) __TachInterrupt(void) {
+    // timer_serviceInterrupt(&timer1);
+}
+
+// void timer_serviceInterrupt(void) {
+//     timer_lower(self);
+//     timer_disableInterrupt(self);
+// }
+
+
 int16_t main(void) {
     init_pin();
     init_clock();
@@ -81,49 +107,27 @@ int16_t main(void) {
     init_ui();
     init_timer();
     init_oc();
-
-    pin_digitalOut(&D[2]); //D2
-    pin_digitalOut(&D[3]); //D1
-    pin_digitalOut(&D[4]); //ENA
-    // pin_digitalOut(&D[5]); //IN2
-    // pin_digitalOut(&D[6]); //IN1
-    pin_digitalOut(&D[7]); //SLEW
-    pin_digitalOut(&D[8]); //INV
-
-    pin_write(&D[2],1); //no tri-stating!
-    pin_write(&D[3],0); //no tri-stating!
-    pin_write(&D[4],1); //Enable the system
-    pin_write(&D[7],0); //low slew rat
-    pin_write(&D[8],0); //don't invert the inputs!
+    init_motor();
+    InitUSB(); // initialize the USB registers and serial interface engine    
 
     led_on(&led2);
-    timer_setPeriod(&timer3, 0.5); //heartbeat
-    timer_start(&timer3);
-    timer_setPeriod(&timer3, 2); //heartbeat
+    timer_setPeriod(&timer3, 1);
     timer_start(&timer3);
 
-    oc_pwm(&oc3,&D[6],NULL,FREQ,QUARTER_DUTY);
+    oc_pwm(&oc3,&D[5],NULL,FREQ,ZERO_DUTY);
     // oc_pwm(&oc3,&D[6],NULL,FREQ,QUARTER_DUTY);
-    while(1){
-
+    
+    while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
+        ServiceUSB();                       // ...service USB requests
+    }
+    while (1) {
+        ServiceUSB();
+        pin_write(&D[5],val1); //11000 seems max, 32000 seems min @ 40e3
          if (timer_flag(&timer3)) {
-            //show a heartbeat and a status message
+            //show a heartbeat
             timer_lower(&timer3);
-            if(slow){
-                pin_write(&D[6],HALF_DUTY);   
-            } else {
-                pin_write(&D[6],QUARTER_DUTY);
-            }
             led_toggle(&led1);
-            slow = !slow;
         }   
-        // if (!sw_read(&sw2))
-        // {
-        //     slow = !slow;
-        //     // pin_write(&D[3],slow); //Enable the system
-        //     // pin_write(&D[2],slow); //Enable the system
-        //     led_toggle(&led3);
-        // }
     }
 }
 
