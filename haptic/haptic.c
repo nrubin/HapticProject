@@ -23,8 +23,17 @@ const uint16_t FULL_DUTY = 65535; //6 volts
 
 uint16_t val1, val2;
 uint16_t slow = 0;
+// CNEN1 =  1<<14;
 
+uint16_t count;
+uint16_t feedback_current;
+// CNEN1bits
 
+// void SetupTach(void){
+// // CNEN2 = 0b0000000000000010;  //looks like d[0] is RP10 AKA CN17
+// // IFS1 = 0; //Bit 4 of IFS1 is CNIF, the interrupt flag we want to raise/lower
+// // _IEC1 = 1;
+// }
 
 void VendorRequests(void) {
     WORD temp;
@@ -76,12 +85,15 @@ void VendorRequestsOut(void) {
 }
 
 void init_motor(void){
-    pin_digitalIn(&D[0]); //tach input
+    // pin_digitalIn(&D[0]); //tach input
     pin_digitalOut(&D[2]); //D2-bar
     pin_digitalOut(&D[3]); //D1
     pin_digitalOut(&D[4]); //ENA
     pin_digitalOut(&D[7]); //SLEW
     pin_digitalOut(&D[8]); //INV
+    pin_analogIn(&A[0]); //current sensor?
+    pin_analogIn(&A[1]); //Vemf sensor
+    pin_analogIn(&A[2]); //0.24% of active high side current
 
     pin_write(&D[2],1); //no tri-stating!
     pin_write(&D[3],0); //no tri-stating!
@@ -90,17 +102,16 @@ void init_motor(void){
     pin_write(&D[8],0); //don't invert the inputs!    
 }
 
-void __attribute__((interrupt, auto_psv)) __TachInterrupt(void) {
-    // timer_serviceInterrupt(&timer1);
+void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
+    IFS1bits.CNIF = 0;
+    // printf("interrupt!\n");
+    // pin_read(&D[0]);
+    count = 1;
 }
-
-// void timer_serviceInterrupt(void) {
-//     timer_lower(self);
-//     timer_disableInterrupt(self);
-// }
 
 
 int16_t main(void) {
+    // SetupTach();
     init_pin();
     init_clock();
     init_uart();
@@ -109,24 +120,32 @@ int16_t main(void) {
     init_oc();
     init_motor();
     InitUSB(); // initialize the USB registers and serial interface engine    
+    count = 0;
+    CNEN1bits.CN14IE = 1;  //sets the second bit of CNEN1, CN1IE (change notif 1 interrupt enable)
+    IFS1bits.CNIF = 0; //make sure the interrupt flag is set low
+    IEC1bits.CNIE = 1; //make sure all change notif inputs are on
+    // CNPD1bits.CN14PDE = 1; //enable the pulldown resistor on CN14
 
     led_on(&led2);
-    timer_setPeriod(&timer3, 1);
+    timer_setPeriod(&timer3, 0.5);
     timer_start(&timer3);
 
-    oc_pwm(&oc3,&D[5],NULL,FREQ,ZERO_DUTY);
+    oc_pwm(&oc3,&D[5],NULL,FREQ,FULL_DUTY);
     // oc_pwm(&oc3,&D[6],NULL,FREQ,QUARTER_DUTY);
     
     while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
         ServiceUSB();                       // ...service USB requests
     }
     while (1) {
-        ServiceUSB();
         pin_write(&D[5],val1); //11000 seems max, 32000 seems min @ 40e3
+        ServiceUSB();
          if (timer_flag(&timer3)) {
             //show a heartbeat
             timer_lower(&timer3);
             led_toggle(&led1);
+            // feedback_current = pin_read(&A[0]);
+            // val2 = feedback_current;
+            printf("count: %d \n", count);
         }   
     }
 }

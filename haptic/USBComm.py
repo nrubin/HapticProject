@@ -1,5 +1,5 @@
 import usb.core
-
+import time
 class USBCom:
 
     def __init__(self):
@@ -46,6 +46,11 @@ class USBCom:
 
 if __name__ == '__main__':
     u = USBCom()
+    # for speed in xrange(8000,50000,100):
+    #     u.set_vals(speed,0)
+    #     time.sleep(0.1)
+    #     current = u.get_vals()[1]
+    #     print "The speed is %s and the current detected is %s" % (speed,current)
     while True:
         speed = int(raw_input("set the motor speed: 0 - 65536\n"))
         u.set_vals(speed,0)
