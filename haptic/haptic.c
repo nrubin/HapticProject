@@ -21,6 +21,8 @@ const uint16_t QUARTER_DUTY = 16384; //6 volts
 const uint16_t THREE_QUARTER_DUTY = 49152; //6 volts
 const uint16_t FULL_DUTY = 65535; //6 volts
 
+void __attribute__((interrupt)) _CNInterrupt(void); 
+
 uint16_t val1, val2;
 uint16_t slow = 0;
 // CNEN1 =  1<<14;
@@ -85,7 +87,7 @@ void VendorRequestsOut(void) {
 }
 
 void init_motor(void){
-    // pin_digitalIn(&D[0]); //tach input
+    pin_digitalIn(&D[0]); //tach input
     pin_digitalOut(&D[2]); //D2-bar
     pin_digitalOut(&D[3]); //D1
     pin_digitalOut(&D[4]); //ENA
@@ -103,10 +105,10 @@ void init_motor(void){
 }
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
-    IFS1bits.CNIF = 0;
-    // printf("interrupt!\n");
-    // pin_read(&D[0]);
+    printf("interrupt!\n");
+    pin_read(&D[0]);
     count = 1;
+    IFS1bits.CNIF = 0;
 }
 
 
