@@ -102,7 +102,7 @@ void toggle_direction(void){
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
     IFS1bits.CNIF = 0;
-    printf("interrupt!\n");
+    // printf("interrupt!\n");
     pin_read(&D[0]);
     // count = 1;
 }
