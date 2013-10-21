@@ -46,13 +46,19 @@ class USBCom:
 
 if __name__ == '__main__':
     u = USBCom()
+    stack = [0]
     # for speed in xrange(8000,50000,100):
     #     u.set_vals(speed,0)
     #     time.sleep(0.1)
     #     current = u.get_vals()[1]
     #     print "The speed is %s and the current detected is %s" % (speed,current)
+    # while True:
+    #     speed = int(raw_input("set the motor speed: 0 - 65536\n"))
+    #     u.set_vals(speed,0)
+    #     vals = u.get_vals()
+    #     print "the vals are %s" % vals
     while True:
-        speed = int(raw_input("set the motor speed: 0 - 65536\n"))
-        u.set_vals(speed,0)
-        vals = u.get_vals()
-        print "the vals are %s" % vals
+        v = u.get_vals()[1]
+        if v > stack[0]:
+            stack = [v] + stack
+            print v
