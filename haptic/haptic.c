@@ -14,6 +14,9 @@
 #define GET_VALS    2   // Vendor request that returns 2 unsigned integer values
 #define PRINT_VALS  3   // Vendor request that prints 2 unsigned integer values 
 
+#define INV &D[8]
+#define ENA &D[4]
+
 const float FREQ = 25e3; //assuming this divides the processor frequency, the min freq we can do is 244.1 Hz.
 const uint16_t ZERO_DUTY = 0;
 const uint16_t HALF_DUTY = 32768; //6 volts
@@ -28,6 +31,7 @@ void __attribute__((interrupt)) _OC4Interrupt(void);
 
 uint16_t val1, val2;
 uint16_t count;
+uint16_t direction;
 uint16_t feedback_current;
 
 void VendorRequests(void) {
@@ -83,18 +87,23 @@ void init_motor(void){
     pin_digitalIn(&D[0]); //tach input
     pin_digitalOut(&D[2]); //D2-bar
     pin_digitalOut(&D[3]); //D1
-    pin_digitalOut(&D[4]); //ENA
+    pin_digitalOut(ENA); //ENA
     pin_digitalOut(&D[7]); //SLEW
-    pin_digitalOut(&D[8]); //INV
+    pin_digitalOut(INV); //INV
     pin_analogIn(&A[0]); //current sensor?
     pin_analogIn(&A[1]); //Vemf sensor
     pin_analogIn(&A[2]); //0.24% of active high side current
 
     pin_write(&D[2],1); //no tri-stating!
     pin_write(&D[3],0); //no tri-stating!
-    pin_write(&D[4],1); //Enable the system
+    pin_write(ENA,1); //Enable the system
     pin_write(&D[7],0); //low slew rate
-    pin_write(&D[8],0); //don't invert the inputs!    
+    pin_write(INV,0); //don't invert the inputs!    
+}
+
+void toggle_direction(void){
+    direction = !direction;
+    pin_write(INV,direction);
 }
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
@@ -105,7 +114,7 @@ void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
 }
 
 void __attribute__((interrupt, auto_psv)) _OC3Interrupt(void) {
-    IFS0bits.OC3IF = 0;
+    IFS1bits.OC3IF = 0;
     // printf("count: %d \n", count);
     // count++;
     // val2 = count;
@@ -129,6 +138,7 @@ void init(void){
     init_oc();
     init_motor();
     InitUSB(); // initialize the USB registers and serial interface engine    
+    init_interrupts();
 }
 
 void init_interrupts(void){
@@ -142,22 +152,23 @@ void init_interrupts(void){
     IEC1bits.OC3IE = 1; 
     IEC1bits.OC4IE = 1;
     //Set OC interrupt flags low
-    IFS0bits.OC3IF = 0;
+    IFS1bits.OC3IF = 0;
     IFS1bits.OC4IF = 0;
 }
 
 
 int16_t main(void) {
+    init();
     count = 0;
-
+    direction = 0;
     led_off(&led3);
     led_on(&led2);
     timer_setPeriod(&timer3, 0.5);
     timer_start(&timer3);
     // printf("count: %d \n", count);
 
-    oc_pwm(&oc3,&D[5],NULL,FREQ,QUARTER_DUTY);
-    oc_pwm(&oc4,&D[6],NULL,FREQ,QUARTER_DUTY);
+    // oc_pwm(&oc3,&D[5],NULL,FREQ,ZERO_DUTY);
+    oc_pwm(&oc4,&D[6],NULL,FREQ,HALF_DUTY);
     
     while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
         ServiceUSB();                       // ...service USB requests
@@ -169,6 +180,7 @@ int16_t main(void) {
             //show a heartbeat
             timer_lower(&timer3);
             led_toggle(&led1);
+            toggle_direction();
             // feedback_current = pin_read(&A[0]);
             // val2 = feedback_current;
             // printf("count: %d \n", count);
