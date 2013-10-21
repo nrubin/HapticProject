@@ -21,8 +21,9 @@
 #define D1 &D[3]
 #define D2n &D[2]
 #define PWM_TIMER &timer2
+#define FB &A[2]
 
-const float FREQ = 10; //assuming this divides the processor frequency, the min freq we can do is 244.1 Hz.
+const float FREQ = 250; //assuming this divides the processor frequency, the min freq we can do is 244.1 Hz.
 const uint16_t ZERO_DUTY = 0;
 const uint16_t HALF_DUTY = 32768; //6 volts
 const uint16_t QUARTER_DUTY = 16384; //6 volts
@@ -91,14 +92,9 @@ void VendorRequestsOut(void) {
 
 void toggle_direction(void){
     direction = !direction;
-    if (direction) {
-        pin_write(IN1,0);
-        pin_write(IN2,1);
-    } else{
-        pin_write(IN1,1);
-        pin_write(IN2,0);
-    }
-    // pin_write(INV,direction);
+    uint16_t current_duty = pin_read(D2n);
+    pin_write(IN1,direction);
+    pin_write(IN2,!direction);
 }
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
@@ -163,7 +159,7 @@ void init_motor(void){
     pin_digitalOut(INV); //INV
     pin_analogIn(&A[0]); //current sensor?
     pin_analogIn(&A[1]); //Vemf sensor
-    pin_analogIn(&A[2]); //0.24% of active high side current
+    pin_analogIn(FB); //0.24% of active high side current
     pin_write(IN1,1);
     pin_write(IN2,0);
     pin_write(D1,0); //no tri-stating!
@@ -198,9 +194,9 @@ int16_t main(void) {
             timer_lower(&timer3);
             led_toggle(&led1);
             // toggle_direction();
-            // feedback_current = pin_read(&A[0]);
+            feedback_current = pin_read(FB);
             // val2 = feedback_current;
-            // printf("count: %d \n", count);
+            printf("FB: %d \n", feedback_current);
         }     
         if (timer_flag(&timer1)) {
             // toggle_direction();
@@ -210,5 +206,4 @@ int16_t main(void) {
         }   
     }
 }
-
 
