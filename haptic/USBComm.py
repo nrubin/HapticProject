@@ -52,13 +52,11 @@ if __name__ == '__main__':
     #     time.sleep(0.1)
     #     current = u.get_vals()[1]
     #     print "The speed is %s and the current detected is %s" % (speed,current)
-    # while True:
-    #     speed = int(raw_input("set the motor speed: 0 - 65536\n"))
-    #     u.set_vals(speed,0)
-    #     vals = u.get_vals()
-    #     print "the vals are %s" % vals
     while True:
-        v = u.get_vals()[1]
-        if v > stack[0]:
-            stack = [v] + stack
-            print v
+        speed = int(raw_input("set the motor speed: 0 - 65536\n"))
+        u.set_vals(speed,0)
+    # while True:
+    #     v = u.get_vals()[1]
+    #     if v > stack[0]:
+    #         stack = [v] + stack
+    #         print v

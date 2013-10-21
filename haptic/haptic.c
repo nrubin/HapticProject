@@ -16,8 +16,12 @@
 
 #define INV &D[8]
 #define ENA &D[4]
+#define IN1 &D[5]
+#define IN2 &D[6]
+#define D1 &D[3]
+#define D2n &D[2]
 
-const float FREQ = 25e3; //assuming this divides the processor frequency, the min freq we can do is 244.1 Hz.
+const float FREQ = 300; //assuming this divides the processor frequency, the min freq we can do is 244.1 Hz.
 const uint16_t ZERO_DUTY = 0;
 const uint16_t HALF_DUTY = 32768; //6 volts
 const uint16_t QUARTER_DUTY = 16384; //6 volts
@@ -83,34 +87,24 @@ void VendorRequestsOut(void) {
     }
 }
 
-void init_motor(void){
-    pin_digitalIn(&D[0]); //tach input
-    pin_digitalOut(&D[2]); //D2-bar
-    pin_digitalOut(&D[3]); //D1
-    pin_digitalOut(ENA); //ENA
-    pin_digitalOut(&D[7]); //SLEW
-    pin_digitalOut(INV); //INV
-    pin_analogIn(&A[0]); //current sensor?
-    pin_analogIn(&A[1]); //Vemf sensor
-    pin_analogIn(&A[2]); //0.24% of active high side current
-
-    pin_write(&D[2],1); //no tri-stating!
-    pin_write(&D[3],0); //no tri-stating!
-    pin_write(ENA,1); //Enable the system
-    pin_write(&D[7],0); //low slew rate
-    pin_write(INV,0); //don't invert the inputs!    
-}
 
 void toggle_direction(void){
     direction = !direction;
-    pin_write(INV,direction);
+    if (direction) {
+        pin_write(IN1,0);
+        pin_write(IN2,1);
+    } else{
+        pin_write(IN1,1);
+        pin_write(IN2,0);
+    }
+    // pin_write(INV,direction);
 }
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void) {
     IFS1bits.CNIF = 0;
-    // printf("interrupt!\n");
+    printf("interrupt!\n");
     pin_read(&D[0]);
-    count = 1;
+    // count = 1;
 }
 
 void __attribute__((interrupt, auto_psv)) _OC3Interrupt(void) {
@@ -156,6 +150,26 @@ void init_interrupts(void){
     IFS1bits.OC4IF = 0;
 }
 
+void init_motor(void){
+    pin_digitalIn(&D[0]); //tach input
+    // pin_digitalOut(D2n); //D2-bar
+    pin_digitalOut(IN1); //D2-bar
+    pin_digitalOut(IN2); //D2-bar
+    pin_digitalOut(D1); //D1
+    pin_digitalOut(ENA); //ENA
+    pin_digitalOut(&D[7]); //SLEW
+    pin_digitalOut(INV); //INV
+    pin_analogIn(&A[0]); //current sensor?
+    pin_analogIn(&A[1]); //Vemf sensor
+    pin_analogIn(&A[2]); //0.24% of active high side current
+    pin_write(IN1,0);
+    pin_write(IN2,1);
+    pin_write(D1,0); //no tri-stating!
+    // pin_write(D2n,0); // PWM on this
+    pin_write(ENA,1); //Enable the system
+    pin_write(&D[7],0); //low slew rate
+    pin_write(INV,0); //don't invert the inputs!    
+}
 
 int16_t main(void) {
     init();
@@ -165,22 +179,21 @@ int16_t main(void) {
     led_on(&led2);
     timer_setPeriod(&timer3, 0.5);
     timer_start(&timer3);
-    // printf("count: %d \n", count);
+    printf("Good morning!\n");
 
-    // oc_pwm(&oc3,&D[5],NULL,FREQ,ZERO_DUTY);
-    oc_pwm(&oc4,&D[6],NULL,FREQ,HALF_DUTY);
+    oc_pwm(&oc3,D2n,NULL,FREQ,QUARTER_DUTY);
     
     while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
         ServiceUSB();                       // ...service USB requests
     }
     while (1) {
-        // pin_write(&D[5],val1); //11000 seems max, 32000 seems min @ 40e3
+        pin_write(D2n,val1); //11000 seems max, 32000 seems min @ 40e3
         ServiceUSB();
          if (timer_flag(&timer3)) {
             //show a heartbeat
             timer_lower(&timer3);
             led_toggle(&led1);
-            toggle_direction();
+            // toggle_direction();
             // feedback_current = pin_read(&A[0]);
             // val2 = feedback_current;
             // printf("count: %d \n", count);
