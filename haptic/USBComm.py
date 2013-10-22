@@ -4,10 +4,8 @@ class USBCom:
 
     def __init__(self):
         print "Your UART cable better be plugged into the USB 2.0 port, or else kittens will cry"
-        self.HELLO = 0
-        self.SET_VALS = 1
-        self.GET_VALS = 2
-        self.PRINT_VALS = 3
+        self.SET_VELOCITY = 0
+        self.GET_VALS = 1
         self.dev = usb.core.find(idVendor = 0x6666, idProduct = 0x0003)
         if self.dev is None:
             raise ValueError('no USB device found matching idVendor = 0x6666 and idProduct = 0x0003')
@@ -16,33 +14,29 @@ class USBCom:
     def close(self):
         self.dev = None
 
-    def hello(self):
+    def set_velocity(self, duty, direction):
         try:
-            self.dev.ctrl_transfer(0x40, self.HELLO)
-        except usb.core.USBError:
-            print "Could not send HELLO vendor request."
-
-    def set_vals(self, val1, val2):
-        try:
-            self.dev.ctrl_transfer(0x40, self.SET_VALS, int(val1), int(val2))
+            self.dev.ctrl_transfer(0x40, self.SET_VELOCITY, int(duty), int(direction))
         except usb.core.USBError as e:
             print e
-            print "Could not send SET_VALS vendor request."
+            print "Could not send SET_VELOCITY vendor request."
             raise e
 
     def get_vals(self):
         try:
-            ret = self.dev.ctrl_transfer(0xC0, self.GET_VALS, 0, 0, 4)
+            ret = self.dev.ctrl_transfer(0xC0, self.GET_VALS, 0, 0, 8)
         except usb.core.USBError:
             print "Could not send GET_VALS vendor request."
         else:
-            return [int(ret[0])+int(ret[1])*256, int(ret[2])+int(ret[3])*256]
+            return [int(ret[0])+int(ret[1])*256, int(ret[2])+int(ret[3])*256, int(ret[4])+int(ret[5])*256, int(ret[6])+int(ret[7])*256]
 
-    def print_vals(self):
-        try:
-            self.dev.ctrl_transfer(0x40, self.PRINT_VALS)
-        except usb.core.USBError:
-            print "Could not send PRINT_VALS vendor request."
+def values(u):
+    l = u.get_vals()
+    rev = l[0]
+    fb = l[1]
+    dir_sense = l[2]
+    vemf = l[3]
+    print "rev = %s \n fb = %s \n dir = %s \n vemf = %s" % (rev,fb,dir_sense,vemf)
 
 if __name__ == '__main__':
     u = USBCom()
@@ -52,9 +46,11 @@ if __name__ == '__main__':
     #     time.sleep(0.1)
     #     current = u.get_vals()[1]
     #     print "The speed is %s and the current detected is %s" % (speed,current)
+    speed = int(raw_input("speed: 0 - 65536 \n"))
+    direction = int(raw_input("direction: 1 or 0 \n"))
+    u.set_velocity(speed,direction)
     while True:
-        speed = int(raw_input("set the motor speed: 0 - 65536\n"))
-        u.set_vals(speed,0)
+        values(u)
     # while True:
     #     v = u.get_vals()[1]
     #     if v > stack[0]:
