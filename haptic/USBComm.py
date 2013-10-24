@@ -51,6 +51,7 @@ if __name__ == '__main__':
     u.set_velocity(speed,direction)
     while True:
         values(u)
+        time.sleep(0.5)
     # while True:
     #     v = u.get_vals()[1]
     #     if v > stack[0]:

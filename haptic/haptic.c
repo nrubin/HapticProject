@@ -175,6 +175,10 @@ void get_feedback(void){
     FB = pin_read(FB_PIN);
 }
 
+void get_vemf(void){
+    VEMF = pin_read(VEMF_PIN);
+}
+
 void SetMotorVelocity(uint16_t duty, uint16_t direction){
     pin_write(D2n,duty);
     pin_write(IN1,!direction);
