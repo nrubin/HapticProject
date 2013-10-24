@@ -5,6 +5,9 @@ Pong game borrowed from https://github.com/furbiesandbeans/PyPong with some slig
 
 import os, pygame, time, sys, pickle, random
 from pygame.locals import *
+import USBComm
+
+u = USBComm.USBComm()
 
 pygame.init()
 
@@ -118,10 +121,10 @@ class Ball(pygame.sprite.Sprite):
 			self.pong_sound.play()
 
 		if self.rect.left < 0:
-			GAME_ENDED = 1
+			GAME_ENDED = 0 #TODO
 			WINNING_PLAYER = 2
 		elif self.rect.right > WWIDTH and numOfPlayers == 2:
-			GAME_ENDED = 1
+			GAME_ENDED = 0 #TODO
 			WINNING_PLAYER = 1
 			
 	def collided(self):
@@ -159,15 +162,8 @@ class Player(pygame.sprite.Sprite):
 		self.image, self.rect = load_image('player.bmp', GREEN)
 			
 	def set(self, num):
-		if num == 1:
-			self.rect.topleft = 30, 150
-		elif num == 2:
-			self.image = pygame.transform.flip(self.image, 1, 0)
-			self.rect.topright = WWIDTH - 30, 150
-		else:
-			print 'GAME PLAYER NOT FOUND'
-			pygame.quit()
-			sys.exit()
+		self.image = pygame.transform.flip(self.image, 1, 0)
+		self.rect.topright = WWIDTH - 30, 150
 		
 	def update(self):
 		nothing = 1
@@ -180,6 +176,29 @@ class Player(pygame.sprite.Sprite):
 		if newpos.top > 0 and newpos.bottom < WHEIGHT:
 			self.rect = newpos
 
+class MotorPlayer(pygame.sprite.Sprite):
+	def __init__(self):
+		pygame.sprite.Sprite.__init__(self) #call Sprite initializer
+		self.image, self.rect = load_image('player.bmp', GREEN)
+
+	def set(self, num):
+		self.rect.topleft = 30, 150
+
+	def update(self):
+		nothing = 1
+
+	def collidedAt(self, object):
+		return ((object.rect.centery - self.rect.centery) / 5)
+	
+	def move(self):
+		current_motor_pos = u.values()["rev"]  # get the motor position
+		print "rev = %s" % current_motor_pos
+		adjusted_pos = current_motor_pos/1000.0 * WHEIGHT - 15000 #scale it
+		print "new pos = %s" % adjusted_pos
+		self.rect.topleft = 30, adjusted_pos
+		# newpos = self.rect.move(0,speed)
+		# if newpos.top > 0 and newpos.bottom < WHEIGHT:
+		# 	self.rect = newpos
 
 		
 # Function to create simple text
@@ -214,8 +233,7 @@ def main():
 	ball.setSpeed(ballSpeed)
 	
 	#Loading Players
-	global player1
-	player1 = Player()
+	player1 = MotorPlayer()
 	player1.set(1)
 	player2 = Player()
 	player2.set(2)
@@ -269,10 +287,11 @@ def main():
 				player2.move(-PLAYERSPEED)
 			if key_press[K_DOWN]:
 				player2.move(PLAYERSPEED)
-			if key_press[K_w]:
-				player1.move(-PLAYERSPEED)
-			if key_press[K_s]:
-				player1.move(PLAYERSPEED)		
+			player1.move()
+			# if key_press[K_w]:
+			# 	player1.move(-PLAYERSPEED)
+			# if key_press[K_s]:
+			# 	player1.move(PLAYERSPEED)		
 			
 			if player1.rect.colliderect(ball.rect):
 				ballSpeed = player1.collidedAt(ball)
